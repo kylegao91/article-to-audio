@@ -1,3 +1,4 @@
 readabilipy
 openai
 boto3
+transformers

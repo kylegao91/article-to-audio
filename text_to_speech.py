@@ -1,8 +1,6 @@
 """Getting Started Example for Python 2.7+/3.3+"""
 import logging
 from contextlib import closing
-import os
-from tempfile import gettempdir
 
 from boto3 import Session
 from botocore.exceptions import BotoCoreError, ClientError
@@ -16,7 +14,7 @@ class TextToSpeech(object):
     session = Session(profile_name=profile)
     self.polly = session.client("polly")
 
-  def convert(self, text):
+  def convert(self, text, output):
     logging.info("Converting text to speech")
     try:
         # Request speech synthesis
@@ -32,18 +30,16 @@ class TextToSpeech(object):
         # number of parallel connections. Here we are using contextlib.closing to
         # ensure the close method of the stream object will be called automatically
         # at the end of the with statement's scope.
-            with closing(response["AudioStream"]) as stream:
-              output = os.path.join(gettempdir(), "speech.mp3")
-
-              try:
-                # Open a file for writing the output as a binary stream
-                    print("Writing speech to file: " + output)
-                    with open(output, "wb") as file:
-                      file.write(stream.read())
-              except IOError as error:
-                  # Could not write to file, exit gracefully
-                  print(error)
-                  return False
+        with closing(response["AudioStream"]) as stream:
+          print("Writing speech to file: " + output)
+          try:
+              # Open a file for writing the output as a binary stream
+              with open(output, "wb") as file:
+                file.write(stream.read())
+          except IOError as error:
+              # Could not write to file, exit gracefully
+              print(error)
+              return False
 
     else:
         # The response didn't contain audio data, exit gracefully
