@@ -151,27 +151,30 @@ if __name__ == "__main__":
     top_story_ids = get_hackernews_top_stories()
 
     story_list = []
-    for count, story_id in enumerate(top_story_ids):
-        story = get_hackernews_item(story_id)
-        if skip_story(story):
-            continue
+    try:
+        for count, story_id in enumerate(top_story_ids):
+            story = get_hackernews_item(story_id)
+            if skip_story(story):
+                continue
 
-        text_list = get_url_content(story["url"])
-        story["summary"] = summarizer.summarize(text_list)
-        if not story["summary"]:
-            logging.warning("Failed to generate summary for story: %s", story["url"])
-            continue
-        # story["summary"] = "This is a summary of the story."
-        story_list.append(story)
+            text_list = get_url_content(story["url"])
+            story["summary"] = summarizer.summarize(text_list)
+            if not story["summary"]:
+                logging.warning(
+                    "Failed to generate summary for story: %s", story["url"]
+                )
+                continue
+            # story["summary"] = "This is a summary of the story."
+            story_list.append(story)
 
-        count += 1
-        if count >= TOP_N:
-            break
+            count += 1
+            if count >= TOP_N:
+                break
+    finally:
+        with open("stories.json", "w") as f:
+            f.write(json.dumps(story_list))
 
     included_stories = [s for s in story_list if "summary" in s]
-
-    with open("stories.json", "w") as f:
-        f.write(json.dumps(included_stories))
 
     composer = Composer(
         "hackernews",
