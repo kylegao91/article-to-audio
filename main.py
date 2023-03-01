@@ -19,7 +19,7 @@ TIMEZONE = "America/New_York"
 
 OPENAI_ORG_ID = os.environ.get("OPENAI_ORG_ID")
 OPENAI_API_TOKEN = os.environ.get("OPENAI_API_TOKEN")
-OPENAI_MAX_TOKEN = 2048
+OPENAI_MAX_TOKEN = 4096
 OPENAI_MAX_RESPONSE_TOKEN = 256
 
 HN_TOPSTORIES_URL = "https://hacker-news.firebaseio.com/v0/topstories.json"
@@ -63,7 +63,6 @@ class Summarizer:
             text_len = self.tokenizer(text, return_length=True).length[0]
 
             if current_length + text_len > self.max_length:
-                logging.debug("Chunk length: %d", current_length)
                 merged_chunk_list.append(chunk)
                 chunk = ""
                 current_length = 0
@@ -149,7 +148,6 @@ if __name__ == "__main__":
     summarizer = Summarizer(tokenizer, OPENAI_MAX_TOKEN - OPENAI_MAX_RESPONSE_TOKEN)
 
     top_story_ids = get_hackernews_top_stories()
-
     story_list = []
     try:
         for count, story_id in enumerate(top_story_ids):
