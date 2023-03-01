@@ -11,7 +11,9 @@ from readabilipy import simple_json_from_html_string
 from transformers import GPT2TokenizerFast
 from composer import Composer
 
-logging.basicConfig(level=logging.INFO, format="%(name)s - %(levelname)s - %(message)s")
+logging.basicConfig(
+    level=logging.DEBUG, format="%(name)s - %(levelname)s - %(message)s"
+)
 
 TIMEZONE = "America/New_York"
 
@@ -31,23 +33,46 @@ class Summarizer:
         self.tokenizer = tokenizer
         self.max_length = max_length
 
-    def get_chunks(self, text_list) -> List[str]:
-        chunk_list = []
+    def break_down_text(self, text) -> List[str]:
+        text_len = self.tokenizer(text, return_length=True).length[0]
+        if text_len > self.max_length:
+            # TODO: This is a naive way of breaking down text. Improve it.
+            separator = ". "
+            splits = text.split(". ")
+            if len(splits) == 1:
+                splits = text.split(" ")
+                separator = " "
+            mid = len(splits) // 2
+            first = separator.join(splits[:mid])
+            second = separator.join(splits[mid:])
+            return self.break_down_text(first) + self.break_down_text(second)
+        else:
+            return [text]
 
+    def get_chunks(self, text_list) -> List[str]:
+        # first, break up the text into chunks that are less than the max length
+        breakdown_chunk_list = []
+        for text in text_list:
+            breakdown_chunk_list += self.break_down_text(text)
+
+        # second, merge chunks that are less than the max length
+        merged_chunk_list = []
         chunk = ""
         current_length = 0
-        for text in text_list:
+        for text in breakdown_chunk_list:
             text_len = self.tokenizer(text, return_length=True).length[0]
+
             if current_length + text_len > self.max_length:
-                chunk_list.append(chunk)
+                logging.debug("Chunk length: %d", current_length)
+                merged_chunk_list.append(chunk)
                 chunk = ""
                 current_length = 0
             chunk += " " + text
             current_length += text_len
         if chunk:
-            chunk_list.append(chunk)
+            merged_chunk_list.append(chunk)
 
-        return chunk_list
+        return merged_chunk_list
 
     def summarize(self, text_list: List[str]) -> str:
         """Summarize a list of text, recursively to bypass GPT's token limit."""
@@ -107,6 +132,9 @@ def openai_summarize_text(text):
 
 
 def skip_story(story):
+    if "url" not in story:
+        logging.info("Story has no URL, skipping: %s", story["id"])
+        return True
     if story["url"].startswith("https://www.github.com") or story["url"].startswith(
         "https://github.com"
     ):
