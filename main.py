@@ -23,7 +23,7 @@ OPENAI_MAX_RESPONSE_TOKEN = 256
 HN_TOPSTORIES_URL = "https://hacker-news.firebaseio.com/v0/topstories.json"
 HN_ITEM_URL = "https://hacker-news.firebaseio.com/v0/item/{}.json"
 
-TOP_N = 3
+TOP_N = 10
 
 
 class Summarizer:
@@ -132,6 +132,7 @@ if __name__ == "__main__":
         story["summary"] = summarizer.summarize(text_list)
         if not story["summary"]:
             logging.warning("Failed to generate summary for story: %s", story["url"])
+            continue
         # story["summary"] = "This is a summary of the story."
         story_list.append(story)
 
