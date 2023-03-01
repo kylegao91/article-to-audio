@@ -1,4 +1,5 @@
 import datetime
+import json
 import os
 from typing import List
 import requests
@@ -12,6 +13,8 @@ from composer import Composer
 
 logging.basicConfig(level=logging.INFO, format="%(name)s - %(levelname)s - %(message)s")
 
+TIMEZONE = "America/New_York"
+
 OPENAI_ORG_ID = os.environ.get("OPENAI_ORG_ID")
 OPENAI_API_TOKEN = os.environ.get("OPENAI_API_TOKEN")
 OPENAI_MAX_TOKEN = 2048
@@ -23,7 +26,7 @@ HN_ITEM_URL = "https://hacker-news.firebaseio.com/v0/item/{}.json"
 TOP_N = 3
 
 
-class TokenChunker:
+class Summarizer:
     def __init__(self, tokenizer, max_length):
         self.tokenizer = tokenizer
         self.max_length = max_length
@@ -45,6 +48,18 @@ class TokenChunker:
             chunk_list.append(chunk)
 
         return chunk_list
+
+    def summarize(self, text_list: List[str]) -> str:
+        """Summarize a list of text, recursively to bypass GPT's token limit."""
+        logging.info("Summarizing text")
+
+        chunk_list = self.get_chunks(text_list)
+        summary_list = [openai_summarize_text(chunk) for chunk in chunk_list]
+
+        if len(summary_list) == 1:
+            return summary_list[0]
+        else:
+            return self.summarize(summary_list)
 
 
 def get_url_content(url) -> List[str]:
@@ -91,19 +106,6 @@ def openai_summarize_text(text):
     return response["choices"][0]["text"]
 
 
-def summarize(text_list: List[str], chunker: TokenChunker) -> str:
-    """Summarize a list of text, recursively to bypass GPT's token limit."""
-    logging.info("Summarizing text")
-
-    chunk_list = chunker.get_chunks(text_list)
-    summary_list = [openai_summarize_text(chunk) for chunk in chunk_list]
-
-    if len(summary_list) == 1:
-        return summary_list[0]
-    else:
-        return summarize(summary_list)
-
-
 def skip_story(story):
     if story["url"].startswith("https://www.github.com") or story["url"].startswith(
         "https://github.com"
@@ -116,24 +118,34 @@ def skip_story(story):
 if __name__ == "__main__":
     openai_authenticate()
     tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")
-    chunker = TokenChunker(tokenizer, OPENAI_MAX_TOKEN - OPENAI_MAX_RESPONSE_TOKEN)
+    summarizer = Summarizer(tokenizer, OPENAI_MAX_TOKEN - OPENAI_MAX_RESPONSE_TOKEN)
 
-    top_story_ids = get_hackernews_top_stories()[:TOP_N]
+    top_story_ids = get_hackernews_top_stories()
 
     story_list = []
-    for story_id in top_story_ids:
+    for count, story_id in enumerate(top_story_ids):
         story = get_hackernews_item(story_id)
         if skip_story(story):
             continue
 
         text_list = get_url_content(story["url"])
-        # story["summary"] = summarize(text_list, chunker)
-        story["summary"] = "This is a summary of the story."
+        story["summary"] = summarizer.summarize(text_list)
+        if not story["summary"]:
+            logging.warning("Failed to generate summary for story: %s", story["url"])
+        # story["summary"] = "This is a summary of the story."
         story_list.append(story)
 
+        count += 1
+        if count >= TOP_N:
+            break
+
     included_stories = [s for s in story_list if "summary" in s]
+
+    with open("stories.json", "w") as f:
+        f.write(json.dumps(included_stories))
+
     composer = Composer(
         "hackernews",
-        datetime.datetime.now(tz=pytz.timezone("America/New_York")),
+        datetime.datetime.now(tz=pytz.timezone(TIMEZONE)),
     )
     composer.compose(included_stories, "output.wav")

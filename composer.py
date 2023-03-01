@@ -29,7 +29,9 @@ class Composer:
     def compose(self, story_list, output_file):
         full_audio = AudioSegment.empty()
 
-        full_audio += AudioSegment.from_wav(os.path.join(self._data_dir, "open.wav"))
+        open_path = os.path.join(self._date_data_dir, "open.wav")
+        self.tts.convert(f"Welcome to {self.feed_name} daily!", open_path)
+        full_audio += AudioSegment.from_wav(open_path)
 
         date_plug_path = os.path.join(self._date_data_dir, f"date_plug.wav")
         self.tts.convert(
@@ -38,21 +40,39 @@ class Composer:
         )
         full_audio += AudioSegment.from_wav(date_plug_path)
 
-        for count, story in enumerate(story_list):
-            if count == len(story_list) - 1:
-                filler_path = os.path.join(self._data_dir, "filler_last.wav")
-            else:
-                filler_path = os.path.join(self._data_dir, f"filler_{count + 1}.wav")
+        summary_prompt_path = os.path.join(self._date_data_dir, "summary_prompt.wav")
+        self.tts.convert("This is a summary of the story.", summary_prompt_path)
+        summary_prompt = AudioSegment.from_wav(summary_prompt_path)
+
+        for idx, story in enumerate(story_list):
+            filler_path = os.path.join(self._data_dir, f"filler_{idx + 1}.wav")
+            filler = self._get_filler(idx, len(story_list))
+            self.tts.convert(filler, filler_path)
             full_audio += AudioSegment.from_wav(filler_path)
 
             title_path = os.path.join(self._date_data_dir, f"{story['id']}_title.wav")
             self.tts.convert(story["title"], title_path)
             full_audio += AudioSegment.from_wav(title_path)
 
+            full_audio += summary_prompt
+
             audio_path = os.path.join(self._date_data_dir, f"{story['id']}.wav")
             self.tts.convert(story["summary"], audio_path)
             full_audio += AudioSegment.from_wav(audio_path)
 
-        full_audio += AudioSegment.from_wav(os.path.join(self._data_dir, "close.wav"))
+        close_path = os.path.join(self._date_data_dir, "close.wav")
+        self.tts.convert(
+            "That's it for today's update. Thank you for listening!", close_path
+        )
+        full_audio += AudioSegment.from_wav(close_path)
 
         full_audio.export(output_file, format="wav")
+
+    def _get_filler(self, idx: int, num_stories: int) -> str:
+        if idx <= 3:
+            filler = f"Story number {idx + 1}."
+        elif idx == num_stories - 1:
+            filler = "Last story of the day."
+        else:
+            filler = "Next story."
+        return filler
