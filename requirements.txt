@@ -2,3 +2,6 @@ readabilipy
 openai
 boto3
 transformers
+pydub
+azure-cognitiveservices-speech
+pytz
