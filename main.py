@@ -10,6 +10,7 @@ import openai
 from readabilipy import simple_json_from_html_string
 from transformers import GPT2TokenizerFast
 from composer import Composer
+from dtos import Article
 
 logging.basicConfig(
     level=logging.DEBUG, format="%(name)s - %(levelname)s - %(message)s"
@@ -17,6 +18,7 @@ logging.basicConfig(
 
 TIMEZONE = "America/New_York"
 
+OPENAI_MOCK = os.getenv("OPENAI_MOCK", "False").lower() == "true"
 OPENAI_ORG_ID = os.environ.get("OPENAI_ORG_ID")
 OPENAI_API_TOKEN = os.environ.get("OPENAI_API_TOKEN")
 OPENAI_MAX_TOKEN = 4096
@@ -25,7 +27,8 @@ OPENAI_MAX_RESPONSE_TOKEN = 256
 HN_TOPSTORIES_URL = "https://hacker-news.firebaseio.com/v0/topstories.json"
 HN_ITEM_URL = "https://hacker-news.firebaseio.com/v0/item/{}.json"
 
-TOP_N = 10
+MAX_NUM_STORIES = 10
+MAX_NUM_SUMMARIES = 5
 
 
 class Summarizer:
@@ -95,18 +98,22 @@ def get_url_content(url) -> List[str]:
     return text_list
 
 
-def get_hackernews_top_stories():
+def get_hackernews_top_stories(max_num_stories: int) -> List[Article]:
     """Get the top stories from Hacker News."""
     logging.info("Getting top stories from Hacker News")
-    top_stories = requests.get(HN_TOPSTORIES_URL).json()
-    return top_stories
+    top_story_ids = requests.get(HN_TOPSTORIES_URL).json()
 
-
-def get_hackernews_item(item_id):
-    """Get a single item from Hacker News."""
-    logging.info("Getting item from Hacker News: %s", item_id)
-    item = requests.get(HN_ITEM_URL.format(item_id)).json()
-    return item
+    article_list = []
+    for count, story_id in enumerate(top_story_ids[:max_num_stories]):
+        story = requests.get(HN_ITEM_URL.format(story_id)).json()
+        article = Article(
+            source_id=story_id,
+            source_rank=count,
+            title=story["title"],
+            url=story.get("url", None),
+        )
+        article_list.append(article)
+    return article_list
 
 
 def openai_authenticate():
@@ -119,6 +126,9 @@ def openai_authenticate():
 def openai_summarize_text(text):
     """Summarize text using OpenAI."""
     logging.info("Summarizing text with OpenAI")
+    if OPENAI_MOCK:
+        return "This is a mock summary."
+
     prompt = f"Summarize this, ignore html:\n{text}"
     response = openai.Completion.create(
         engine="text-davinci-003",
@@ -130,52 +140,43 @@ def openai_summarize_text(text):
     return response["choices"][0]["text"]
 
 
-def skip_story(story):
-    if "url" not in story:
-        logging.info("Story has no URL, skipping: %s", story["id"])
-        return True
-    if story["url"].startswith("https://www.github.com") or story["url"].startswith(
-        "https://github.com"
-    ):
-        logging.info("Github story, skipping: %s", story["url"])
-        return True
-    return False
-
-
 if __name__ == "__main__":
     openai_authenticate()
     tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")
     summarizer = Summarizer(tokenizer, OPENAI_MAX_TOKEN - OPENAI_MAX_RESPONSE_TOKEN)
 
-    top_story_ids = get_hackernews_top_stories()
-    story_list = []
+    article_list = get_hackernews_top_stories(MAX_NUM_STORIES)
+
+    summed_article_list = []
     try:
-        for count, story_id in enumerate(top_story_ids):
-            story = get_hackernews_item(story_id)
-            if skip_story(story):
+        for article in article_list:
+            if article.should_skip():
                 continue
 
-            text_list = get_url_content(story["url"])
-            story["summary"] = summarizer.summarize(text_list)
-            if not story["summary"]:
+            try:
+                article.text_list = get_url_content(article.url)
+            except Exception as e:
                 logging.warning(
-                    "Failed to generate summary for story: %s", story["url"]
+                    "Failed to get content for story: %s", article.source_id
                 )
                 continue
-            # story["summary"] = "This is a summary of the story."
-            story_list.append(story)
+            summary = summarizer.summarize(article.text_list)
+            if not summary:
+                logging.warning(
+                    "Failed to generate summary for story: %s", article.source_id
+                )
+                continue
+            article.summary = summary
+            summed_article_list.append(article)
 
-            count += 1
-            if count >= TOP_N:
+            if len(summed_article_list) >= MAX_NUM_SUMMARIES:
                 break
     finally:
         with open("stories.json", "w") as f:
-            f.write(json.dumps(story_list))
-
-    included_stories = [s for s in story_list if "summary" in s]
+            f.write(json.dumps([a.asdict() for a in summed_article_list]))
 
     composer = Composer(
         "hackernews",
         datetime.datetime.now(tz=pytz.timezone(TIMEZONE)),
     )
-    composer.compose(included_stories, "output.wav")
+    composer.compose(summed_article_list, "output.wav")
