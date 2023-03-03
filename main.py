@@ -129,15 +129,22 @@ def openai_summarize_text(text):
     if OPENAI_MOCK:
         return "This is a mock summary."
 
-    prompt = f"Summarize this, ignore html:\n{text}"
-    response = openai.Completion.create(
-        engine="text-davinci-003",
-        prompt=prompt,
-        temperature=0.7,
-        top_p=1,
+    prompt = [
+        {
+            "role": "system",
+            "content": "You are a helpful assitant that summarize longer text into podcast ready scripts.",
+        },
+        {
+            "role": "user",
+            "content": f"Summarize this:\n{text}",
+        },
+    ]
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=prompt,
         max_tokens=256,
     )
-    return response["choices"][0]["text"]
+    return response.choices[0].message["content"]
 
 
 if __name__ == "__main__":
