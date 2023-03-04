@@ -7,8 +7,8 @@ class TextToSpeech:
     def __init__(self):
         # This example requires environment variables named "SPEECH_KEY" and "SPEECH_REGION"
         self.speech_config = speechsdk.SpeechConfig(
-            subscription=os.environ.get("SPEECH_KEY"),
-            region=os.environ.get("SPEECH_REGION"),
+            subscription=os.environ.get("AZURE_KEY"),
+            region=os.environ.get("AZURE_REGION"),
         )
 
         # The language of the voice that speaks.

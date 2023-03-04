@@ -70,7 +70,7 @@ class Composer:
         )
         full_audio += AudioSegment.from_wav(close_path)
 
-        full_audio.export(output_file, format="wav")
+        full_audio.export(output_file, format="mp3")
 
     def _get_filler(self, idx: int, num_stories: int) -> str:
         if idx <= 3:
