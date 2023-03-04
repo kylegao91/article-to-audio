@@ -2,15 +2,15 @@ import datetime
 import json
 import os
 from typing import List
-import requests
 import logging
 
 import pytz
 import openai
-from readabilipy import simple_json_from_html_string
 from transformers import GPT2TokenizerFast
 from composer import Composer
 from crawler import HackerNewsCrawler
+from crawler.sample import SampleCrawler
+from webparser import ChromeExtensionBypassPaywallParser, SimpleParser
 
 logging.basicConfig(
     level=logging.DEBUG, format="%(name)s - %(levelname)s - %(message)s"
@@ -86,15 +86,6 @@ class Summarizer:
             return self.summarize(summary_list)
 
 
-def get_url_content(url) -> List[str]:
-    """Get the content of a URL, return as a list of strings."""
-    logging.info("Getting content from URL: %s", url)
-    req = requests.get(url)
-    article = simple_json_from_html_string(req.text, use_readability=True)
-    text_list = [t["text"] for t in article["plain_text"]]
-    return text_list
-
-
 def openai_authenticate():
     """Authenticate with OpenAI."""
     logging.info("Authenticating with OpenAI")
@@ -130,20 +121,17 @@ if __name__ == "__main__":
     openai_authenticate()
     tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")
     summarizer = Summarizer(tokenizer, OPENAI_MAX_TOKEN - OPENAI_MAX_RESPONSE_TOKEN)
-    crawler = HackerNewsCrawler()
 
-    article_list = crawler.get_article_list(MAX_NUM_STORIES)
+    parser = SimpleParser()
+    crawler = HackerNewsCrawler(parser)
+    # parser = ChromeExtensionBypassPaywallParser()
+    # crawler = SampleCrawler(parser)
+
+    article_list = crawler.get_articles(MAX_NUM_STORIES)
 
     summed_article_list = []
     try:
         for article in article_list:
-            try:
-                article.text_list = get_url_content(article.url)
-            except Exception as e:
-                logging.warning(
-                    "Failed to get content for story: %s", article.source_id
-                )
-                continue
             summary = summarizer.summarize(article.text_list)
             if not summary:
                 logging.warning(

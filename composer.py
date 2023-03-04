@@ -28,7 +28,7 @@ class Composer:
         if not os.path.exists(self._date_data_dir):
             os.makedirs(self._date_data_dir)
 
-    def compose(self, article_list: List[Article], output_file: str):
+    def compose(self, story_list: List[Article], output_file: str):
         full_audio = AudioSegment.empty()
 
         open_path = os.path.join(self._date_data_dir, "open.wav")
@@ -46,15 +46,13 @@ class Composer:
         self.tts.convert("This is a summary of the story.", summary_prompt_path)
         summary_prompt = AudioSegment.from_wav(summary_prompt_path)
 
-        for idx, story in enumerate(article_list):
+        for idx, story in enumerate(story_list):
             filler_path = os.path.join(self._data_dir, f"filler_{idx + 1}.wav")
-            filler = self._get_filler(idx, len(article_list))
+            filler = self._get_filler(idx, len(story_list))
             self.tts.convert(filler, filler_path)
             full_audio += AudioSegment.from_wav(filler_path)
 
-            title_path = os.path.join(
-                self._date_data_dir, f"{story.source_id }_title.wav"
-            )
+            title_path = os.path.join(self._date_data_dir, f"{story.source_id }_title.wav")
             self.tts.convert(story.title, title_path)
             full_audio += AudioSegment.from_wav(title_path)
 
@@ -70,7 +68,7 @@ class Composer:
         )
         full_audio += AudioSegment.from_wav(close_path)
 
-        full_audio.export(output_file, format="mp3")
+        full_audio.export(output_file, format="wav")
 
     def _get_filler(self, idx: int, num_stories: int) -> str:
         if idx <= 3:

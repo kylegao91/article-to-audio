@@ -5,3 +5,4 @@ transformers
 pydub
 azure-cognitiveservices-speech
 pytz
+pytest-playwright
