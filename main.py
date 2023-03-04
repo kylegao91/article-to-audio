@@ -10,7 +10,7 @@ import openai
 from readabilipy import simple_json_from_html_string
 from transformers import GPT2TokenizerFast
 from composer import Composer
-from dtos import Article
+from crawler import HackerNewsCrawler
 
 logging.basicConfig(
     level=logging.DEBUG, format="%(name)s - %(levelname)s - %(message)s"
@@ -23,9 +23,6 @@ OPENAI_ORG_ID = os.environ.get("OPENAI_ORG_ID")
 OPENAI_API_TOKEN = os.environ.get("OPENAI_API_TOKEN")
 OPENAI_MAX_TOKEN = 4096
 OPENAI_MAX_RESPONSE_TOKEN = 256
-
-HN_TOPSTORIES_URL = "https://hacker-news.firebaseio.com/v0/topstories.json"
-HN_ITEM_URL = "https://hacker-news.firebaseio.com/v0/item/{}.json"
 
 MAX_NUM_STORIES = 10
 MAX_NUM_SUMMARIES = 5
@@ -98,24 +95,6 @@ def get_url_content(url) -> List[str]:
     return text_list
 
 
-def get_hackernews_top_stories(max_num_stories: int) -> List[Article]:
-    """Get the top stories from Hacker News."""
-    logging.info("Getting top stories from Hacker News")
-    top_story_ids = requests.get(HN_TOPSTORIES_URL).json()
-
-    article_list = []
-    for count, story_id in enumerate(top_story_ids[:max_num_stories]):
-        story = requests.get(HN_ITEM_URL.format(story_id)).json()
-        article = Article(
-            source_id=story_id,
-            source_rank=count,
-            title=story["title"],
-            url=story.get("url", None),
-        )
-        article_list.append(article)
-    return article_list
-
-
 def openai_authenticate():
     """Authenticate with OpenAI."""
     logging.info("Authenticating with OpenAI")
@@ -151,15 +130,13 @@ if __name__ == "__main__":
     openai_authenticate()
     tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")
     summarizer = Summarizer(tokenizer, OPENAI_MAX_TOKEN - OPENAI_MAX_RESPONSE_TOKEN)
+    crawler = HackerNewsCrawler()
 
-    article_list = get_hackernews_top_stories(MAX_NUM_STORIES)
+    article_list = crawler.get_article_list(MAX_NUM_STORIES)
 
     summed_article_list = []
     try:
         for article in article_list:
-            if article.should_skip():
-                continue
-
             try:
                 article.text_list = get_url_content(article.url)
             except Exception as e:
