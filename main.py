@@ -53,4 +53,5 @@ if __name__ == "__main__":
     composer.compose(
         summed_article_list,
         output_file="output.wav",
+        note_file="notes.txt",
     )

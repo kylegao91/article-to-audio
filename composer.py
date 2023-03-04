@@ -30,9 +30,14 @@ class Composer:
 
     def compose(
         self,
-        story_list: List[Article],
+        article_list: List[Article],
         output_file: str = "output.wav",
+        note_file: str = "notes.txt",
     ):
+        self._create_audio(article_list, output_file)
+        self._create_note(article_list, note_file)
+
+    def _create_audio(self, article_list: List[Article], output_file: str):
         full_audio = AudioSegment.empty()
 
         open_path = os.path.join(self._date_data_dir, "open.wav")
@@ -50,9 +55,9 @@ class Composer:
         self.tts.convert("This is a summary of the story.", summary_prompt_path)
         summary_prompt = AudioSegment.from_wav(summary_prompt_path)
 
-        for idx, story in enumerate(story_list):
+        for idx, story in enumerate(article_list):
             filler_path = os.path.join(self._data_dir, f"filler_{idx + 1}.wav")
-            filler = self._get_filler(idx, len(story_list))
+            filler = self._get_filler(idx, len(article_list))
             self.tts.convert(filler, filler_path)
             full_audio += AudioSegment.from_wav(filler_path)
 
@@ -75,6 +80,13 @@ class Composer:
         full_audio += AudioSegment.from_wav(close_path)
 
         full_audio.export(output_file, format="wav")
+
+    def _create_note(self, article_list: List[Article], note_file: str):
+        with open(note_file, "w") as f:
+            for idx, story in enumerate(article_list):
+                f.write(f"{idx + 1}. {story.title}\n")
+                f.write(f"{story.url}\n")
+                f.write(f"Summary: {story.summary}\n\n")
 
     def _get_filler(self, idx: int, num_stories: int) -> str:
         if idx <= 3:
