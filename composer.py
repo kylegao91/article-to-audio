@@ -28,7 +28,11 @@ class Composer:
         if not os.path.exists(self._date_data_dir):
             os.makedirs(self._date_data_dir)
 
-    def compose(self, story_list: List[Article], output_file: str):
+    def compose(
+        self,
+        story_list: List[Article],
+        output_file: str = "output.wav",
+    ):
         full_audio = AudioSegment.empty()
 
         open_path = os.path.join(self._date_data_dir, "open.wav")
@@ -52,7 +56,9 @@ class Composer:
             self.tts.convert(filler, filler_path)
             full_audio += AudioSegment.from_wav(filler_path)
 
-            title_path = os.path.join(self._date_data_dir, f"{story.source_id }_title.wav")
+            title_path = os.path.join(
+                self._date_data_dir, f"{story.source_id }_title.wav"
+            )
             self.tts.convert(story.title, title_path)
             full_audio += AudioSegment.from_wav(title_path)
 

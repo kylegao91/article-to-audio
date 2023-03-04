@@ -50,4 +50,7 @@ if __name__ == "__main__":
         "hackernews",
         datetime.datetime.now(tz=pytz.timezone(TIMEZONE)),
     )
-    composer.compose(summed_article_list, "output.wav")
+    composer.compose(
+        summed_article_list,
+        output_file="output.wav",
+    )
