@@ -1,3 +1,4 @@
+import logging
 from typing import List
 
 from dtos import Article
@@ -8,8 +9,17 @@ class BaseCrawler:
         self.parser = parser
 
     def get_articles(self, max_num_articles: int) -> List[Article]:
-        article_list = self.get_article_list(max_num_articles)
-        return [self.parse_article(article) for article in article_list]
+        article_list = []
+        for article in self.get_article_list(max_num_articles):
+            try:
+                self.parse_article(article)
+            except:
+                logging.warning("Failed to parse article: %s", article.url)
+                continue
+            article_list.append(article)
+            if len(article_list) >= max_num_articles:
+                break
+        return article_list
 
     def get_article_list(self, max_num_articles: int) -> List[Article]:
         raise NotImplementedError()

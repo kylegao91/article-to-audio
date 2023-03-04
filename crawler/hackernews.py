@@ -15,7 +15,6 @@ class HackerNewsCrawler(BaseCrawler):
         logging.info("Getting top stories from Hacker News")
         top_story_ids = requests.get(HN_TOPSTORIES_URL).json()
 
-        article_list = []
         for count, story_id in enumerate(top_story_ids):
             story = requests.get(HN_ITEM_URL.format(story_id)).json()
             if self._should_skip(story):
@@ -26,10 +25,7 @@ class HackerNewsCrawler(BaseCrawler):
                 title=story["title"],
                 url=story.get("url", None),
             )
-            article_list.append(article)
-            if len(article_list) >= max_num_stories:
-                break
-        return article_list
+            yield article
 
     def _should_skip(self, story):
         if story["url"] is None:

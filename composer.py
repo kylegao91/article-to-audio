@@ -31,7 +31,7 @@ class Composer:
     def compose(
         self,
         article_list: List[Article],
-        output_file: str = "output.wav",
+        output_file: str = "output.mp3",
         note_file: str = "notes.txt",
     ):
         self._create_audio(article_list, output_file)
@@ -79,14 +79,14 @@ class Composer:
         )
         full_audio += AudioSegment.from_wav(close_path)
 
-        full_audio.export(output_file, format="wav")
+        full_audio.export(output_file, format="mp3")
 
     def _create_note(self, article_list: List[Article], note_file: str):
         with open(note_file, "w") as f:
-            for idx, story in enumerate(article_list):
-                f.write(f"{idx + 1}. {story.title}\n")
-                f.write(f"{story.url}\n")
-                f.write(f"Summary: {story.summary}\n\n")
+            for story in article_list:
+                f.write(
+                    f"<a href='{story.url}'>{story.title}</a><br><b>Summary:</b> {story.summary}<br>"
+                )
 
     def _get_filler(self, idx: int, num_stories: int) -> str:
         if idx <= 3:

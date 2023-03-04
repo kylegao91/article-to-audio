@@ -6,6 +6,7 @@ import pytz
 from composer import Composer
 from crawler import HackerNewsCrawler
 from crawler.sample import SampleCrawler
+from podcast.castos import CastosPodcast
 from summary import OpenAISummarizer
 from webparser import ChromeExtensionBypassPaywallParser, SimpleParser
 
@@ -23,6 +24,7 @@ if __name__ == "__main__":
     summarizer = OpenAISummarizer()
     parser = SimpleParser()
     crawler = HackerNewsCrawler(parser)
+    podcast_host = CastosPodcast()
     # parser = ChromeExtensionBypassPaywallParser()
     # crawler = SampleCrawler(parser)
 
@@ -46,12 +48,14 @@ if __name__ == "__main__":
         with open("stories.json", "w") as f:
             f.write(json.dumps([a.asdict() for a in summed_article_list]))
 
-    composer = Composer(
-        "hackernews",
-        datetime.datetime.now(tz=pytz.timezone(TIMEZONE)),
-    )
-    composer.compose(
-        summed_article_list,
-        output_file="output.wav",
-        note_file="notes.txt",
+    date = datetime.datetime.now(tz=pytz.timezone(TIMEZONE))
+    audio_path = "output.mp3"
+    note_path = "notes.txt"
+    composer = Composer("hackernews", date)
+    composer.compose(summed_article_list, output_file=audio_path, note_file=note_path)
+    podcast_host.create_episode(
+        52699,
+        date.strftime("%A, %B %d"),
+        note_path,
+        audio_path,
     )
