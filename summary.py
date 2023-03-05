@@ -5,7 +5,6 @@ from typing import List
 import openai
 from transformers import GPT2TokenizerFast
 
-
 OPENAI_MOCK = os.getenv("OPENAI_MOCK", "False").lower() == "true"
 OPENAI_ORG_ID = os.environ.get("OPENAI_ORG_ID")
 OPENAI_API_TOKEN = os.environ.get("OPENAI_API_TOKEN")
@@ -20,7 +19,9 @@ def openai_authenticate():
     openai.organization = OPENAI_ORG_ID
 
 
-def openai_summarize_text(text):
+def openai_summarize_text(text,
+                          prompt="Summarize this",
+                          OPENAI_MOCK=OPENAI_MOCK):
     """Summarize text using OpenAI."""
     logging.info("Summarizing text with OpenAI")
     if OPENAI_MOCK:
@@ -28,12 +29,14 @@ def openai_summarize_text(text):
 
     prompt = [
         {
-            "role": "system",
-            "content": "You are a helpful assitant that summarize longer text into podcast ready scripts.",
+            "role":
+            "system",
+            "content":
+            "You are a helpful assitant that summarize longer text into podcast ready scripts.",
         },
         {
             "role": "user",
-            "content": f"Summarize this:\n{text}",
+            "content": f"{prompt}:\n{text}",
         },
     ]
     response = openai.ChatCompletion.create(
@@ -45,6 +48,7 @@ def openai_summarize_text(text):
 
 
 class OpenAISummarizer:
+
     def __init__(
         self,
         tokenizer=GPT2TokenizerFast.from_pretrained("gpt2"),
