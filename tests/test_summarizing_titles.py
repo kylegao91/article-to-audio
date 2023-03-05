@@ -12,12 +12,6 @@ real_test = os.getenv("GIVE_A_CENT", 0)
 import pytest
 
 
-def pytest_addopts(parser):
-    parser.addoption("--give-a-cent",
-                     action="store_true",
-                     help="call opanAI api for a real test.")
-
-
 def testing_title_combined() -> None:
     """
      GIVE_A_CENT=1 pytest tests/test_summarizing_titles.py -s
