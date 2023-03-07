@@ -1,3 +1,4 @@
+import os
 import datetime
 import json
 import logging
@@ -6,6 +7,7 @@ import pytz
 from composer import Composer
 from crawler import HackerNewsCrawler
 from crawler.sample import SampleCrawler
+from crawler.wsj import WSJCrawler
 from podcast.castos import CastosPodcast
 from summary import OpenAISummarizer
 from webparser import ChromeExtensionBypassPaywallParser, SimpleParser
@@ -16,17 +18,21 @@ logging.basicConfig(
 
 TIMEZONE = "America/New_York"
 
+SKIP_PUBLISH = os.getenv("SKIP_PUBLISH", "False").lower() == "true"
+
 MAX_NUM_STORIES = 10
-MAX_NUM_SUMMARIES = 5
+MAX_NUM_SUMMARIES = 10
 
 
 if __name__ == "__main__":
+    source_name = "Wall Street Journal"
     summarizer = OpenAISummarizer()
-    parser = SimpleParser()
-    crawler = HackerNewsCrawler(parser)
+    # parser = SimpleParser()
+    parser = ChromeExtensionBypassPaywallParser()
+    # crawler = HackerNewsCrawler(parser)
     podcast_host = CastosPodcast()
-    # parser = ChromeExtensionBypassPaywallParser()
     # crawler = SampleCrawler(parser)
+    crawler = WSJCrawler(parser)
 
     article_list = crawler.get_articles(MAX_NUM_STORIES)
 
@@ -51,11 +57,13 @@ if __name__ == "__main__":
     date = datetime.datetime.now(tz=pytz.timezone(TIMEZONE))
     audio_path = "output.mp3"
     note_path = "notes.txt"
-    composer = Composer("hackernews", date)
+    composer = Composer(source_name, date)
     composer.compose(summed_article_list, output_file=audio_path, note_file=note_path)
-    podcast_host.create_episode(
-        52699,
-        date.strftime("%A, %B %d"),
-        note_path,
-        audio_path,
-    )
+
+    if not SKIP_PUBLISH:
+        podcast_host.create_episode(
+            52699,
+            date.strftime("%A, %B %d"),
+            note_path,
+            audio_path,
+        )

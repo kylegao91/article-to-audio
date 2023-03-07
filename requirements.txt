@@ -7,3 +7,4 @@ azure-cognitiveservices-speech
 pytz
 pytest-playwright
 requests_toolbelt
+beautifulsoup4
