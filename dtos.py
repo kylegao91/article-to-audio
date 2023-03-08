@@ -1,7 +1,13 @@
+from enum import Enum
 import dataclasses
 from dataclasses import dataclass
 from typing import List, Union
 import logging
+
+
+class Gender(Enum):
+    MALE = 0
+    FEMALE = 1
 
 
 @dataclass
@@ -17,3 +23,10 @@ class Article:
 
     def asdict(self):
         return dataclasses.asdict(self)
+
+
+@dataclass
+class Script:
+    host_name: str
+    host_gender: Gender
+    text: str

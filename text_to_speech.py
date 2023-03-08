@@ -14,12 +14,15 @@ class TextToSpeech:
         # The language of the voice that speaks.
         self.speech_config.speech_synthesis_voice_name = "en-US-JennyNeural"
 
-    def convert(self, text: str, output_file: str):
+    def convert(self, text: str, output_file: str, ssml=False):
         audio_config = speechsdk.audio.AudioOutputConfig(filename=output_file)
         speech_synthesizer = speechsdk.SpeechSynthesizer(
             speech_config=self.speech_config, audio_config=audio_config
         )
-        speech_synthesis_result = speech_synthesizer.speak_text_async(text).get()
+        if ssml:
+            speech_synthesis_result = speech_synthesizer.speak_ssml_async(text).get()
+        else:
+            speech_synthesis_result = speech_synthesizer.speak_text_async(text).get()
 
         if (
             speech_synthesis_result.reason

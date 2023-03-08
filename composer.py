@@ -1,11 +1,26 @@
 import os
 from datetime import datetime
 from typing import List
+from xml.sax.saxutils import escape
 
 from pydub import AudioSegment
-from dtos import Article
+from dtos import Article, Gender, Script
 
 from text_to_speech import TextToSpeech
+
+
+MALE_VOICE = "en-US-GuyNeural"
+FEMALE_VOICE = "en-US-JennyNeural"
+SSML_SPEAK_TEMPLATE = """
+<voice name="{voice}">
+    {text}
+</voice>
+"""
+SSML_TEMPLATE = """
+<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US">
+    {voices}
+</speak>
+"""
 
 
 class Composer:
@@ -79,6 +94,30 @@ class Composer:
         )
         full_audio += AudioSegment.from_wav(close_path)
 
+        full_audio.export(output_file, format="mp3")
+
+    def compose_conversation(
+        self,
+        script_list: List[Script],
+        output_file: str = "output.mp3",
+        note_file: str = "notes.txt",
+    ):
+        ssml_list = []
+        for script in script_list:
+            if script.host_gender == Gender.MALE:
+                ssml_list.append(
+                    SSML_SPEAK_TEMPLATE.format(voice=MALE_VOICE, text=escape(script.text))
+                )
+            else:
+                ssml_list.append(
+                    SSML_SPEAK_TEMPLATE.format(voice=FEMALE_VOICE, text=escape(script.text))
+                )
+        ssml = SSML_TEMPLATE.format(voices="\n".join(ssml_list))
+
+        conversation_path = os.path.join(self._date_data_dir, "conversation.wav")
+        self.tts.convert(ssml, conversation_path, ssml=True)
+
+        full_audio = AudioSegment.from_wav(conversation_path)
         full_audio.export(output_file, format="mp3")
 
     def _create_note(self, article_list: List[Article], note_file: str):
