@@ -15,11 +15,24 @@ class TextToSpeech:
         self.speech_config.speech_synthesis_voice_name = "en-US-JennyNeural"
 
     def convert(self, text: str, output_file: str):
+        ssml = """
+        <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis"
+            xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="zh-CN">
+            <voice name="en-US-JennyNeural">
+                <prosody rate="+30%">
+                    {text}
+                </prosody>
+            </voice>
+        </speak>
+        """.format(
+            text=text
+        )
+
         audio_config = speechsdk.audio.AudioOutputConfig(filename=output_file)
         speech_synthesizer = speechsdk.SpeechSynthesizer(
             speech_config=self.speech_config, audio_config=audio_config
         )
-        speech_synthesis_result = speech_synthesizer.speak_text_async(text).get()
+        speech_synthesis_result = speech_synthesizer.speak_ssml(ssml)
 
         if (
             speech_synthesis_result.reason

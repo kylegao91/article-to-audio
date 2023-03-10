@@ -9,19 +9,19 @@ from text_to_speech import TextToSpeech
 
 
 class Composer:
-    def __init__(self, feed_name: str, date_created: datetime):
+    def __init__(self, feed_name: str, date_created: datetime, data_dir: str):
         self.feed_name = feed_name
         self.date_created = date_created
         self.tts = TextToSpeech()
 
         self._data_dir = os.path.join(
             os.path.dirname(__file__),
-            "data",
+            data_dir,
             self.feed_name,
         )
         self._date_data_dir = os.path.join(
             os.path.dirname(__file__),
-            "data",
+            data_dir,
             self.feed_name,
             self.date_created.strftime("%Y-%m-%d"),
         )

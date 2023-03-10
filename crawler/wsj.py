@@ -7,6 +7,7 @@ from crawler.base import BaseCrawler
 
 from dtos import Article
 
+WSJ_SOURCE = "Wall Street Journal"
 WSJ_URL = "https://www.wsj.com/"
 
 
@@ -40,6 +41,7 @@ class WSJCrawler(BaseCrawler):
                 continue
 
             article = Article(
+                source_name=WSJ_SOURCE,
                 source_id=self._get_id(count),
                 source_rank=count,
                 title=title,

@@ -8,3 +8,4 @@ pytz
 pytest-playwright
 requests_toolbelt
 beautifulsoup4
+click

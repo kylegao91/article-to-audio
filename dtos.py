@@ -1,11 +1,11 @@
 import dataclasses
 from dataclasses import dataclass
 from typing import List, Union
-import logging
 
 
 @dataclass
 class Article:
+    source_name: str
     source_id: str
     source_rank: int
     title: Union[str, None]
@@ -17,3 +17,7 @@ class Article:
 
     def asdict(self):
         return dataclasses.asdict(self)
+
+    @staticmethod
+    def fromdict(obj):
+        return Article(**obj)

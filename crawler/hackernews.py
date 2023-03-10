@@ -5,6 +5,7 @@ from typing import List
 from dtos import Article
 from crawler.base import BaseCrawler
 
+HN_SOURCE = "Hackernews"
 HN_TOPSTORIES_URL = "https://hacker-news.firebaseio.com/v0/topstories.json"
 HN_ITEM_URL = "https://hacker-news.firebaseio.com/v0/item/{}.json"
 
@@ -20,6 +21,7 @@ class HackerNewsCrawler(BaseCrawler):
             if self._should_skip(story):
                 continue
             article = Article(
+                source_name=HN_SOURCE,
                 source_id=story_id,
                 source_rank=count,
                 title=story["title"],
@@ -28,7 +30,7 @@ class HackerNewsCrawler(BaseCrawler):
             yield article
 
     def _should_skip(self, story):
-        if story["url"] is None:
+        if "url" not in story or story["url"] is None:
             logging.info("Story has no URL, skipping: %s", story["id"])
             return True
         url = story["url"]

@@ -41,6 +41,7 @@ class SampleCrawler(BaseCrawler):
         article_list = []
         for count, story in enumerate(SAMPLE_STORIES):
             article = Article(
+                source_name="Wall street journal",
                 source_id=story["id"],
                 source_rank=count,
                 title=story["title"],
